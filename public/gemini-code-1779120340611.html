@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Teacher Copilot - 教师备课助手 MVP</title>
+    
+    <!-- 引入 React 18 运行时与 Babel 编译器 (用于单文件离线预览) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 引入 Tailwind CSS 脚本 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        :root {
+            --brand: #6f8077;
+            --surface: rgba(255, 252, 247, 0.76);
+            --foreground: #2d2a27;
+            --muted: #6f685f;
+        }
+
+        body {
+            background: radial-gradient(circle at top right, #f7f3ed, #eae3d9);
+            color: var(--foreground);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+        }
+
+        .panel {
+            background: var(--surface);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+
+        .input-shell {
+            transition: all 0.2s ease-in-out;
+        }
+        .input-shell:focus-within {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 2px rgba(111, 128, 119, 0.12);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        /* 隐藏原生 Select 箭头，使用自定义 SVG */
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // ==========================================
+        // 配置项数据定义 (下拉列表)
+        // ==========================================
+        const OPTIONS = {
+            grades: ['小学三年级', '小学四年级', '小学五年级', '小学六年级', '初中七年级', '初中八年级', '初中九年级', '高中一年级', '高中二年级', '高中三年级'],
+            subjects: ['语文', '数学', '英语', '物理', '化学', '生物', '历史', '地理', '道德与法治'],
+            textbooks: ['统编版/部编版', '人教版', '苏教版', '北师大版', '外研版', '沪教版'],
+            durations: ['1课时 (常规课)', '2课时 (连堂/单元课)', '复习专项 (1课时)']
+        };
+
+        const SAMPLE_INPUT = {
+            grade: '小学五年级',
+            subject: '语文',
+            textbook: '统编版/部编版',
+            topic: '《少年中国说（节选）》',
+            duration: '1课时 (常规课)',
+            objectives: '1. 正确、流利、有感情地朗读课文，背诵课文。\n2. 理解课文内容，体会作者强烈的爱国主义情感。\n3. 结合历史与现实，理解“少年强则国强”的深刻内涵。'
+        };
+
+        const SUGGESTED_TOPICS = [
+            { label: '桃花源记', grade: '初中八年级', subject: '语文', textbook: '统编版/部编版' },
+            { label: '勾股定理', grade: '初中八年级', subject: '数学', textbook: '人教版' },
+            { label: '光合作用', grade: '高中一年级', subject: '生物', textbook: '人教版' },
+        ];
+
+        const MOCK_RESULT = {
+            title: '《少年中国说（节选）》 深度结构化教学设计',
+            meta: '小学五年级 · 语文 · 统编版/部编版 · 1课时 (常规课)',
+            lessonPlan: {
+                objectives: '1. 正确、流利、有感情地朗读课文，背诵课文。\n2. 理解课文内容，体会作者强烈的爱国主义情感。\n3. 结合历史与现实，理解“少年强则国强”的深刻内涵。',
+                activities: [
+                    { time: '导入新课 (5 分钟)', content: '多媒体播放《少年中国》慷慨激昂的诵读音频，引导学生思考：新时代的少年应该是什么样子的？引出课题。' },
+                    { time: '初读感知 (15 分钟)', content: '学生自读课文，扫清字词障碍。重点讲解“矞矞皇皇”、“干将发硎”等生僻词汇的字形与文化隐喻。' },
+                    { time: '深度研读 (20 分钟)', content: '分组解构“红日初升，其道大光”等象征句式。引导学生体会中国少年与祖国前途之间密不可分的关系。' }
+                ]
+            },
+            questions: [
+                { id: 1, level: '基础巩固', content: '请写出文中“潜龙腾渊，鳞爪飞扬”中“潜”和“渊”的含义，并背诵该段落。', answer: '潜：隐藏的。渊：深潭。', analysis: '考查课文核心词汇的理解与背诵记忆能力。' },
+                { id: 2, level: '能力提升', content: '课文中运用了一连串排比句（如红日初升、河出伏流等），这样写有什么好处？', answer: '通过一系列自然意象的蓬勃生机，象征着少年中国的无限光明与活力，使文章气势磅礴，具有强烈的感染力。', analysis: '引导学生从修辞手法深入文本的情感表达。' },
+                { id: 3, level: '拓展延伸', content: '结合当下科技或社会发展，谈谈你对“少年强则国强”中“强”字的全新理解。', answer: '开放性答案。如：当下的强不仅是体魄和军事，更是科技创新能力、文化自信以及对人类命运共同体的担当。', analysis: '引导学生将文本历史背景与当代现实相结合。' }
+            ],
+            report: {
+                metrics: [
+                    { name: '教学目标达成度', score: 95, feedback: '教案活动完美呼应了核心素养中的情感态度目标。' },
+                    { name: '时间结构合理性', score: 88, feedback: '整体时间紧凑，初读与深读时间分配科学。' },
+                    { name: '分层作业适配度', score: 92, feedback: '题目梯度明显，基础、进阶、拓展划分符合新课标差异化要求。' }
+                ],
+                suggestion: '建议在“深度研读”环节给基础较弱的学生预留 2 分钟的小组词汇提示板，体验更佳。'
+            }
+        };
+
+        // ==========================================
+        // 纯线框 SVG 矢量图标库
+        // ==========================================
+        const Icons = {
+            Sparkles: () => (
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.904zM18 5.25L17.25 8l-.75-2.75L13.75 4.5l2.75-.75L17.25 1l.75 2.75 2.75.75-2.75.75z" /></svg>
+            ),
+            ChevronDown: () => (
+                <svg class="w-4 h-4 text-[#6f685f] pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            ),
+            Rocket: () => (
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L6 12zm0 0h7.5" /></svg>
+            ),
+            BookOpen: () => (
+                <svg class="w-4 h-4 mr-1.5 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+            ),
+            PencilSquare: () => (
+                <svg class="w-4 h-4 mr-1.5 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+            ),
+            ShieldCheck: () => (
+                <svg class="w-4 h-4 mr-1.5 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
+            ),
+            ArrowLeft: () => (
+                <svg class="w-3.5 h-3.5 mr-1 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+            ),
+            Eye: () => (
+                <svg class="w-3.5 h-3.5 mr-1 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.644v-.11a13.313 13.313 0 0121.758 0v.11a1.012 1.012 0 010 .644V12.322a13.314 13.314 0 01-21.758 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            ),
+            EyeSlash: () => (
+                <svg class="w-3.5 h-3.5 mr-1 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+            ),
+            LightBulb: () => (
+                <svg class="w-4 h-4 mr-1.5 inline-block text-[#6f8077]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a3 3 0 10-3-3H12zM10.5 21h3m-3-3h3m-7.5-6.75a6.75 6.75 0 1113.5 0c0 2.062-1.23 3.832-3 4.605V18a1.5 1.5 0 01-1.5 1.5h-3A1.5 1.5 0 019 17.605v-1.755c-1.77-.773-3-2.543-3-4.605z" /></svg>
+            )
+        };
+
+        // ==========================================
+        // 应用主程序
+        // ==========================================
+        function App() {
+            const [viewState, setViewState] = useState('form'); 
+            const [loadingStage, setLoadingStage] = useState('analyzing'); 
+            const [activeTab, setActiveTab] = useState('plan'); 
+            const [expandedAnswers, setExpandedAnswers] = useState({}); 
+            
+            const [formData, setFormData] = useState({
+                grade: '', subject: '', textbook: '', topic: '', duration: '', objectives: ''
+            });
+            const [errors, setErrors] = useState({});
+
+            const fillSample = () => {
+                setFormData(SAMPLE_INPUT);
+                setErrors({});
+            };
+
+            const selectTag = (tag) => {
+                setFormData({
+                    grade: tag.grade,
+                    subject: tag.subject,
+                    textbook: tag.textbook,
+                    topic: tag.label,
+                    duration: '1课时 (常规课)',
+                    objectives: `1. 掌握本节课相关核心基础知识。\n2. 深入理解课文/章节重点逻辑。\n3. 达成学科素养要求的实际应用能力。`
+                });
+                setErrors({});
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                const newErrors = {};
+                if (!formData.grade) newErrors.grade = '请选择年级';
+                if (!formData.subject) newErrors.subject = '请选择学科';
+                if (!formData.textbook) newErrors.textbook = '请选择教材版本';
+                if (!formData.topic.trim()) newErrors.topic = '请输入课题';
+                if (!formData.objectives.trim()) newErrors.objectives = '请输入教学目标';
+
+                if (Object.keys(newErrors).length > 0) {
+                    setErrors(newErrors);
+                    return;
+                }
+
+                setViewState('loading');
+                setLoadingStage('analyzing');
+
+                setTimeout(() => setLoadingStage('generating_plan'), 1500);
+                setTimeout(() => setLoadingStage('crafting_exercises'), 3500);
+                setTimeout(() => setLoadingStage('reviewing'), 5500);
+                setTimeout(() => setViewState('result'), 7500);
+            };
+
+            // --- 视图 A: 精编表单页 ---
+            if (viewState === 'form') {
+                return (
+                    <div class="max-w-4xl mx-auto py-8 animate-fade-in">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+                            <div>
+                                <h1 class="text-3xl font-semibold tracking-tight text-[#2d2a27]">AI Teacher Copilot</h1>
+                                <p class="text-[#6f685f] text-sm mt-1">输入基础教学信息，一键为您定制全套高品质备课资产</p>
+                            </div>
+                            <button onClick={fillSample} type="button" class="self-start sm:self-center text-xs px-4 py-2 border border-[#6f8077]/30 text-[#6f8077] hover:bg-[#6f8077]/5 transition-all rounded-full font-medium bg-white/40 flex items-center space-x-1">
+                                <Icons.Sparkles />
+                                <span>填入官方精选示例</span>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} class="panel p-6 sm:p-8 space-y-6 rounded-3xl shadow-md border border-white/50">
+                            {/* 四列平行选择框行 */}
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#6f685f] mb-2 tracking-wider">年级</label>
+                                    <div class={`input-shell p-2.5 border rounded-xl bg-white/60 flex items-center justify-between ${errors.grade ? 'border-red-400' : 'border-black/5'}`}>
+                                        <select value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} class="w-full bg-transparent outline-none text-sm text-[#2d2a27] cursor-pointer">
+                                            <option value="" disabled hidden>请选择年级</option>
+                                            {OPTIONS.grades.map(g => <option key={g} value={g}>{g}</option>)}
+                                        </select>
+                                        <Icons.ChevronDown />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#6f685f] mb-2 tracking-wider">学科</label>
+                                    <div class={`input-shell p-2.5 border rounded-xl bg-white/60 flex items-center justify-between ${errors.subject ? 'border-red-400' : 'border-black/5'}`}>
+                                        <select value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} class="w-full bg-transparent outline-none text-sm text-[#2d2a27] cursor-pointer">
+                                            <option value="" disabled hidden>请选择学科</option>
+                                            {OPTIONS.subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                        <Icons.ChevronDown />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#6f685f] mb-2 tracking-wider">教材版本</label>
+                                    <div class={`input-shell p-2.5 border rounded-xl bg-white/60 flex items-center justify-between ${errors.textbook ? 'border-red-400' : 'border-black/5'}`}>
+                                        <select value={formData.textbook} onChange={e => setFormData({...formData, textbook: e.target.value})} class="w-full bg-transparent outline-none text-sm text-[#2d2a27] cursor-pointer">
+                                            <option value="" disabled hidden>请选择教材</option>
+                                            {OPTIONS.textbooks.map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                        <Icons.ChevronDown />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#6f685f] mb-2 tracking-wider">课时设计</label>
+                                    <div class="input-shell p-2.5 border border-black/5 rounded-xl bg-white/60 flex items-center justify-between">
+                                        <select value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} class="w-full bg-transparent outline-none text-sm text-[#2d2a27] cursor-pointer">
+                                            <option value="" disabled hidden>请选择课时</option>
+                                            {OPTIONS.durations.map(d => <option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                        <Icons.ChevronDown />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-[#6f685f] mb-2 tracking-wider">课题名称</label>
+                                <div class={`input-shell p-2.5 border rounded-xl bg-white/60 mb-3 ${errors.topic ? 'border-red-400' : 'border-black/5'}`}>
+                                    <input type="text" placeholder="请输入具体章节或课文核心名称" value={formData.topic} onChange={e => setFormData({...formData, topic: e.target.value})} class="w-full bg-transparent outline-none text-sm text-[#2d2a27]" />
+                                </div>
+                                <div class="flex flex-wrap gap-2 items-center">
+                                    <span class="text-xs text-[#6f685f] mr-1">快捷灵感模板:</span>
+                                    {SUGGESTED_TOPICS.map(tag => (
+                                        <button key={tag.label} type="button" onClick={() => selectTag(tag)} class="px-3 py-1 text-xs rounded-full bg-white/80 hover:bg-[#6f8077]/10 text-[#6f685f] hover:text-[#6f8077] transition-all border border-black/[0.03]">
+                                            {tag.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-[#6f685f] mb-2 tracking-wider">教学目标与核心素养要求</label>
+                                <div class={`input-shell p-3 border rounded-xl bg-white/60 ${errors.objectives ? 'border-red-400' : 'border-black/5'}`}>
+                                    <textarea rows="4" placeholder="请输入核心教学意图及目标要求..." value={formData.objectives} onChange={e => setFormData({...formData, objectives: e.target.value})} class="w-full bg-transparent outline-none text-sm resize-none leading-relaxed text-[#2d2a27]"></textarea>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full py-3.5 bg-[#6f8077] text-white font-medium text-sm rounded-2xl hover:opacity-95 shadow-md transition-all flex items-center justify-center space-x-2">
+                                <Icons.Rocket />
+                                <span>一键生成全套备课资产</span>
+                            </button>
+                        </form>
+                    </div>
+                );
+            }
+
+            // --- 视图 B: 步进加载页 ---
+            if (viewState === 'loading') {
+                const stages = [
+                    { id: 'analyzing', label: '分析教学目标与核心素养大纲要求' },
+                    { id: 'generating_plan', label: '由 AI 构建重难点清晰的结构化深度教案' },
+                    { id: 'crafting_exercises', label: '精选高契合度的分层梯度练习题与答案' },
+                    { id: 'reviewing', label: '触发大模型质量合规性指标诊断检查' },
+                ];
+                return (
+                    <div class="min-h-[75vh] flex items-center justify-center animate-fade-in">
+                        <div class="panel w-full max-w-2xl p-8 text-center rounded-3xl shadow-lg border border-white/50">
+                            <div class="w-10 h-10 rounded-full border-2 border-[#6f8077]/20 border-t-[#6f8077] animate-spin mx-auto mb-6"></div>
+                            <h3 class="text-xl font-medium text-[#2d2a27] mb-2">AI 老师正在为您精心备课...</h3>
+                            <p class="text-xs text-[#6f685f] mb-8">优质的深度资产通常需要数秒的大模型推演，请稍候</p>
+                            
+                            <div class="space-y-4 text-left max-w-md mx-auto">
+                                {stages.map((s, idx) => {
+                                    const currentIdx = stages.findIndex(item => item.id === loadingStage);
+                                    const isDone = currentIdx > idx;
+                                    const isCurrent = s.id === loadingStage;
+                                    return (
+                                        <div key={s.id} class={`flex items-center space-x-3 transition-all ${isCurrent ? 'opacity-100 translate-x-1' : isDone ? 'opacity-60' : 'opacity-20'}`}>
+                                            <div class={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${isDone ? 'bg-[#6f8077] text-white font-serif' : 'border border-[#6f685f] text-[#6f685f]'}`}>
+                                                {isDone ? '✓' : idx + 1}
+                                            </div>
+                                            <span class="text-xs sm:text-sm text-[#2d2a27]">{s.label}</span>
+                                            {isCurrent && <span class="text-[10px] text-[#6f8077] bg-[#6f8077]/10 px-1.5 py-0.5 rounded animate-pulse">进行中</span>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- 视图 C: 结果展示页 ---
+            if (viewState === 'result') {
+                const colors = { '基础巩固': 'bg-green-50 text-green-700', '能力提升': 'bg-amber-50 text-amber-700', '拓展延伸': 'bg-purple-50 text-purple-700' };
+                return (
+                    <div class="max-w-4xl mx-auto py-8 animate-fade-in">
+                        <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                            <div>
+                                <span class="text-xs bg-[#6f8077]/10 text-[#6f8077] px-3 py-1 rounded-full font-medium">{MOCK_RESULT.meta}</span>
+                                <h1 class="text-2xl sm:text-3xl font-semibold text-[#2d2a27] mt-2">{MOCK_RESULT.title}</h1>
+                            </div>
+                            <button onClick={() => setViewState('form')} class="text-xs text-[#6f8077] bg-white/60 border border-black/5 px-3 py-1.5 rounded-xl hover:underline flex items-center">
+                                <Icons.ArrowLeft />
+                                <span>重新制作</span>
+                            </button>
+                        </div>
+
+                        {/* 标签页按钮组 */}
+                        <div class="flex bg-white/40 p-1.5 rounded-2xl border border-black/[0.03] shadow-sm max-w-sm mb-8 backdrop-blur-md">
+                            <button onClick={() => setActiveTab('plan')} class={`flex-1 text-xs py-2.5 font-medium rounded-xl transition-all flex items-center justify-center ${activeTab === 'plan' ? 'bg-white text-[#6f8077] shadow-sm font-semibold' : 'text-[#6f685f]'}`}>
+                                <Icons.BookOpen />
+                                <span>结构化教案</span>
+                            </button>
+                            <button onClick={() => setActiveTab('exercise')} class={`flex-1 text-xs py-2.5 font-medium rounded-xl transition-all flex items-center justify-center ${activeTab === 'exercise' ? 'bg-white text-[#6f8077] shadow-sm font-semibold' : 'text-[#6f685f]'}`}>
+                                <Icons.PencilSquare />
+                                <span>分层习题</span>
+                            </button>
+                            <button onClick={() => setActiveTab('report')} class={`flex-1 text-xs py-2.5 font-medium rounded-xl transition-all flex items-center justify-center ${activeTab === 'report' ? 'bg-white text-[#6f8077] shadow-sm font-semibold' : 'text-[#6f685f]'}`}>
+                                <Icons.ShieldCheck />
+                                <span>质量检查</span>
+                            </button>
+                        </div>
+
+                        {/* 各 Tab 视图承载区 */}
+                        <div>
+                            {activeTab === 'plan' && (
+                                <div class="panel p-6 sm:p-8 rounded-3xl shadow-md border border-white/50 space-y-6">
+                                    <div>
+                                        <h3 class="text-xs font-bold text-[#6f8077] tracking-wider mb-2 uppercase">一、本课时核心教学目标</h3>
+                                        <p class="text-sm bg-white/40 p-4 rounded-xl leading-relaxed whitespace-pre-line border border-black/[0.01] text-[#2d2a27]">{MOCK_RESULT.lessonPlan.objectives}</p>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xs font-bold text-[#6f8077] tracking-wider mb-3 uppercase">二、互动式流式教学过程</h3>
+                                        <div class="border-l-2 border-[#6f8077]/20 pl-4 ml-2 space-y-6">
+                                            {MOCK_RESULT.lessonPlan.activities.map((act, i) => (
+                                                <div key={i} class="relative">
+                                                    <div class="absolute -left-[21px] top-1 w-2 h-2 rounded-full bg-[#6f8077] border-2 border-white"></div>
+                                                    <span class="text-xs font-bold text-[#6f8077] block">{act.time}</span>
+                                                    <p class="text-xs sm:text-sm text-[#2d2a27] mt-1 leading-relaxed bg-white/30 p-3 rounded-xl">{act.content}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'exercise' && (
+                                <div class="space-y-4">
+                                    {MOCK_RESULT.questions.map(q => {
+                                        const open = !!expandedAnswers[q.id];
+                                        return (
+                                            <div key={q.id} class="p-5 sm:p-6 bg-white/60 border border-white/40 rounded-2xl shadow-sm">
+                                                <div class="flex justify-between items-center mb-3">
+                                                    <div class="flex items-center space-x-2">
+                                                        <span class="font-mono font-bold text-xs text-[#6f8077]">QUESTION 0{q.id}</span>
+                                                        <span class={`text-[10px] px-2.5 py-0.5 rounded-full border border-black/5 ${colors[q.level]}`}>{q.level}</span>
+                                                    </div>
+                                                    <button onClick={() => setExpandedAnswers({...expandedAnswers, [q.id]: !open})} class="text-xs text-[#6f8077] font-medium hover:underline flex items-center">
+                                                        {open ? <Icons.EyeSlash /> : <Icons.Eye />}
+                                                        <span>{open ? '隐藏解析' : '查看解析'}</span>
+                                                    </button>
+                                                </div>
+                                                <p class="text-sm text-[#2d2a27] leading-relaxed mb-1">{q.content}</p>
+                                                
+                                                <div class={`transition-all duration-300 overflow-hidden ${open ? 'max-h-[300px] opacity-100 mt-4 pt-4 border-t border-dashed border-black/5' : 'max-h-0 opacity-0'}`}>
+                                                    <div class="bg-[rgba(255,252,247,0.8)] p-4 rounded-xl space-y-3">
+                                                        <div>
+                                                            <span class="text-[11px] font-bold text-emerald-700 block mb-0.5">【标准参考答案】</span>
+                                                            <p class="text-xs sm:text-sm text-[#2d2a27] font-medium">{q.answer}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span class="text-[11px] font-bold text-[#6f8077] block mb-0.5">【大模型深度评析】</span>
+                                                            <p class="text-xs text-[#6f685f] leading-relaxed">{q.analysis}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {activeTab === 'report' && (
+                                <div class="panel p-6 rounded-3xl shadow-md border border-white/50 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="space-y-4">
+                                        <h4 class="text-xs font-bold text-[#6f8077] tracking-wider mb-2 uppercase">🛡️ 教学质量合规性诊断指标</h4>
+                                        {MOCK_RESULT.report.metrics.map(m => (
+                                            <div key={m.name} class="space-y-1">
+                                                <div class="flex justify-between text-xs font-medium">
+                                                    <span>{m.name}</span>
+                                                    <span class="font-mono text-[#6f8077]">{m.score}分</span>
+                                                </div>
+                                                <div class="h-1.5 w-full bg-black/5 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-[#6f8077] rounded-full" style={{width: `${m.score}%`}}></div>
+                                                </div>
+                                                <p class="text-[11px] text-[#6f685f]">{m.feedback}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div class="bg-white/50 p-4 rounded-2xl border border-white flex flex-col justify-between">
+                                        <div>
+                                            <span class="text-xs font-bold text-[#6f8077] block mb-1.5 flex items-center">
+                                                <Icons.LightBulb />
+                                                <span>进一步迭代精修方案</span>
+                                            </span>
+                                            <p class="text-xs text-[#6f685f] leading-relaxed">{MOCK_RESULT.report.suggestion}</p>
+                                        </div>
+                                        <div class="text-right mt-4">
+                                            <span class="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-mono font-bold tracking-wider">PASSED</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
