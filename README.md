@@ -2,27 +2,38 @@
 
 > 教师端 AI 备课与出题助手 MVP
 
+## 项目状态
+
+当前版本已完成可演示的 MVP，具备登录、套餐、用量限制、管理后台、教案生成、题目生成、质量检查、历史记录和导出能力。
+
+这是一个可以放进简历的项目，但更适合写成“独立开发的 MVP / 可演示产品”，而不是“已上线的生产系统”。
+
 ## 项目简介
 
-AI Teacher Copilot 是一个面向中小学教师的备课提效工具。教师输入教学信息后，可以一键生成结构化教案、分层练习题、答案解析，并获得质量检查报告。
+AI Teacher Copilot 面向中小学教师，帮助用户基于教学目标快速生成结构化教案、分层练习题、答案解析，并提供质量检查报告与历史管理能力。
 
-**核心价值**：将备课时间从 30 分钟缩短到 5 分钟。
+核心价值是把备课时间从约 30 分钟压缩到约 5 分钟，同时把 AI 输出做成可直接落地的教学资产。
 
-## 功能特性
+## 已实现能力
 
-- ✅ **教案生成**：输入年级、学科、课题、教学目标，自动生成结构化教案
-- ✅ **题目生成**：支持选择题、填空题、简答题，难度分层
-- ✅ **答案解析**：每道题配标准答案和解题思路
-- ✅ **质量检查**：检查目标覆盖、难度分布、题型分布、表述清晰度
-- ✅ **历史记录**：保存和查看过往教案
-- ✅ **导出功能**：导出 Markdown 格式
+- 教案生成：按年级、学科、教材、课题、教学目标生成结构化教案
+- 题目生成：支持选择题、填空题、简答题，且按难度分层
+- 答案解析：为每道题生成标准答案与解析
+- 质量检查：检查目标覆盖、难度分布、题型分布与表述清晰度
+- 历史记录：保存并查看过往生成内容
+- 导出功能：导出 Markdown 文件
+- 登录系统：邮箱密码登录，带演示账号
+- 套餐体系：Free / Pro / Team 三档套餐
+- 用量限制：按月额度控制，防止成本失控
+- 管理后台：查看用户、套餐和用量概览
 
 ## 技术栈
 
-- **前端**: Next.js 15 (App Router) + React 19 + Tailwind CSS
-- **后端**: Next.js API Routes
-- **数据库**: SQLite (better-sqlite3)
-- **AI**: OpenAI API (GPT-4o-mini)
+- 前端：Next.js 16 + React 19 + TypeScript + Tailwind CSS
+- 后端：Next.js API Routes
+- 数据库：SQLite（`better-sqlite3`）
+- AI：OpenAI API
+- 鉴权：Cookie Session
 
 ## 快速开始
 
@@ -34,15 +45,13 @@ npm install
 
 ### 2. 配置环境变量
 
-复制 `.env.local.example` 为 `.env.local`：
+复制 `.env.local.example` 为 `.env.local`，并填入 OpenAI API Key：
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-编辑 `.env.local`，填入你的 OpenAI API Key：
-
-```
+```env
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
@@ -52,7 +61,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 npm run dev
 ```
 
-访问 http://localhost:3000
+访问：http://localhost:3000
 
 ### 4. 构建生产版本
 
@@ -61,109 +70,66 @@ npm run build
 npm start
 ```
 
+## 演示账号
+
+- Free：`free@teachercopilot.local` / `Free123!`
+- Pro：`pro@teachercopilot.local` / `Pro123!`
+- Admin：`admin@teachercopilot.local` / `Admin123!`
+
 ## 项目结构
 
-```
+```text
 ai-teacher-copilot/
 ├── src/
-│   ├── app/                    # Next.js App Router
-│   │   ├── (main)/            # 主页面组
-│   │   │   ├── page.tsx       # 首页（教案生成表单）
-│   │   │   ├── result/        # 结果页
-│   │   │   └── history/       # 历史记录页
-│   │   ├── api/               # API 路由
-│   │   │   ├── generate/      # 生成相关 API
-│   │   │   └── history/       # 历史记录 API
+│   ├── app/
+│   │   ├── (main)/            # 首页、登录、历史、管理后台
+│   │   ├── api/               # 生成、认证、历史、管理 API
 │   │   ├── layout.tsx         # 根布局
 │   │   └── globals.css        # 全局样式
-│   ├── components/            # React 组件
-│   │   └── ui/                # UI 组件（预留）
-│   ├── lib/                   # 工具库
-│   │   ├── db.ts              # 数据库操作
-│   │   ├── openai.ts          # OpenAI API 封装
-│   │   ├── prompts.ts         # Prompt 模板
-│   │   └── export.ts          # 导出功能
+│   ├── lib/                   # 数据库、鉴权、OpenAI、导出、限流
 │   └── types/                 # TypeScript 类型定义
-│       └── index.ts
-├── data/                      # SQLite 数据库文件（运行时生成）
-├── .env.local                 # 环境变量（需手动创建）
-├── package.json
-├── tsconfig.json
-├── tailwind.config.ts
-└── next.config.ts
+├── data/                      # SQLite 数据库（运行时生成）
+├── public/                    # 静态资源
+└── README.md
 ```
 
-## API 接口
+## API 概览
 
-### POST /api/generate/lesson
-生成教案
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `POST /api/generate/lesson`
+- `POST /api/generate/questions`
+- `POST /api/generate/check`
+- `GET /api/history`
+- `GET /api/admin/overview`
+- `GET /api/admin/users`
 
-**请求体**:
-```json
-{
-  "grade": "primary-3",
-  "subject": "math",
-  "topic": "分数的初步认识",
-  "objectives": "学生能够理解分数的概念...",
-  "duration": 40
-}
+## 简历写法建议
+
+建议写成：
+
+```text
+AI Teacher Copilot | 独立开发者
+2026.05 - 至今
+
+• 面向中小学教师的 AI 备课助手，支持教案生成、题目生成、答案解析与质量检查
+• 搭建登录、套餐、用量限制和管理后台，形成完整的产品闭环
+• 使用 Next.js + TypeScript + SQLite + OpenAI API 实现全栈 MVP
+• 设计结构化工作流，将备课时间从 30 分钟缩短到 5 分钟
 ```
 
-### POST /api/generate/questions
-生成题目
+## 结论
 
-**请求体**:
-```json
-{
-  "lessonPlanId": "xxx",
-  "types": ["choice", "fill", "short"],
-  "count": 3,
-  "difficulty": "basic"
-}
-```
+这项目已经达到“可以放简历”的水平，前提是你把它作为：
 
-### POST /api/generate/check
-质量检查
+- 独立开发作品
+- MVP / Demo 产品
+- 有完整产品闭环的 AI 工具
 
-**请求体**:
-```json
-{
-  "lessonPlanId": "xxx"
-}
-```
+不建议把它包装成：
 
-### GET /api/history
-获取历史记录
+- 已商业化上线的成熟 SaaS
+- 已大规模真实用户验证的产品
 
-**查询参数**:
-- `limit`: 返回数量（默认 20）
-- `offset`: 偏移量（默认 0）
-- `id`: 获取单个教案详情
-
-## 开发说明
-
-### 添加新的题型
-
-在 `src/types/index.ts` 中修改 `QuestionType` 类型，然后在 `src/lib/prompts.ts` 中更新 Prompt 模板。
-
-### 修改质量检查标准
-
-在 `src/lib/prompts.ts` 的 `qualityCheckPrompt` 函数中修改评估维度和标准。
-
-### 自定义导出格式
-
-在 `src/lib/export.ts` 中修改 `exportToMarkdown` 函数。
-
-## 注意事项
-
-1. **API Key 安全**: 不要将 `.env.local` 提交到版本控制
-2. **数据库位置**: SQLite 文件位于 `data/teacher-copilot.db`
-3. **AI 成本**: 使用 GPT-4o-mini，单次教案生成约 0.001-0.002 USD
-
-## 许可证
-
-MIT
-
-## 作者
-
-Created for AI PM Portfolio Project
+如果你愿意，我可以下一步继续帮你把 `RESUME.md` 也改成更适合投递的版本。
