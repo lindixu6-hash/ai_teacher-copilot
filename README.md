@@ -5,6 +5,7 @@
 ## 线上入口
 
 - 演示页：`http://47.86.191.93/teacher-copilot/`
+- 产品页：`http://47.86.191.93/teacher-copilot-app/`
 
 ## 项目定位
 
@@ -90,7 +91,7 @@ npm run build
 npm start
 ```
 
-然后由 Nginx / 阿里云反向代理挂载到 `/teacher-copilot/`。
+然后由 Nginx / 阿里云反向代理挂载到 `/teacher-copilot-app/`。
 
 ## 演示账号
 
@@ -138,4 +139,3 @@ AI Teacher Copilot | 独立开发者
 
 - 已大规模商业化上线的成熟 SaaS
 - 已经过大量真实用户验证的正式产品
-
