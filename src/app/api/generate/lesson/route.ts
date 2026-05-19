@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { chatCompletion } from '@/lib/openai';
 import { saveLessonPlan } from '@/lib/db';
-import { generateLessonPrompt, extractJSON, safeJSONParse } from '@/lib/prompts';
+import { buildFallbackObjectives, buildFallbackStandards, generateLessonPrompt, extractJSON, safeJSONParse } from '@/lib/prompts';
 import { getClientKey, rateLimit } from '@/lib/rate-limit';
 import { assertUsageAllowance, getCurrentUserFromRequest, recordUsage } from '@/lib/auth';
 import { LessonInput, LessonContent, ApiResponse, LessonGenerateResponse } from '@/types';
@@ -53,18 +53,25 @@ export async function POST(request: NextRequest) {
     const body: LessonInput = await request.json();
 
     // 验证必填字段
-    if (!body.grade || !body.subject || !body.topic || !body.objectives || !body.duration) {
+    if (!body.grade || !body.subject || !body.topic || !body.duration) {
       return NextResponse.json<ApiResponse<never>>({
         success: false,
         error: {
           code: 'MISSING_FIELDS',
-          message: '请填写完整的教案信息',
+          message: '请填写年级、学科、课题和课时',
         },
       }, { status: 400 });
     }
 
+    const objectives = body.objectives?.trim() || buildFallbackObjectives(body);
+    const standards = body.standards?.trim() || buildFallbackStandards(body);
+
     // 生成 Prompt
-    const prompt = generateLessonPrompt(body);
+    const prompt = generateLessonPrompt({
+      ...body,
+      objectives,
+      standards,
+    });
 
     // 调用 OpenAI
     const response = await chatCompletion([
@@ -102,7 +109,7 @@ export async function POST(request: NextRequest) {
       subject: body.subject,
       textbook: body.textbook,
       topic: body.topic,
-      objectives: body.objectives,
+      objectives,
       duration: body.duration,
       content,
     });

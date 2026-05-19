@@ -5,43 +5,67 @@
 
 import { LessonInput, QuestionType, Difficulty } from '@/types';
 
+const gradeMap: Record<string, string> = {
+  'primary-1': '小学一年级',
+  'primary-2': '小学二年级',
+  'primary-3': '小学三年级',
+  'primary-4': '小学四年级',
+  'primary-5': '小学五年级',
+  'primary-6': '小学六年级',
+  'junior-1': '初中一年级',
+  'junior-2': '初中二年级',
+  'junior-3': '初中三年级',
+  'senior-1': '高中一年级',
+  'senior-2': '高中二年级',
+  'senior-3': '高中三年级',
+};
+
+const subjectMap: Record<string, string> = {
+  chinese: '语文',
+  math: '数学',
+  english: '英语',
+  physics: '物理',
+  chemistry: '化学',
+  biology: '生物',
+  history: '历史',
+  geography: '地理',
+  morality: '道德与法治',
+};
+
+export function getGradeLabel(grade: string) {
+  return gradeMap[grade] || grade;
+}
+
+export function getSubjectLabel(subject: string) {
+  return subjectMap[subject] || subject;
+}
+
+export function buildFallbackObjectives(input: LessonInput): string {
+  const gradeLabel = getGradeLabel(input.grade);
+  const subjectLabel = getSubjectLabel(input.subject);
+
+  return [
+    `1. 认识并掌握《${input.topic}》相关的核心知识点与基本概念。`,
+    `2. 通过阅读、讨论、练习或探究活动，提升${gradeLabel}学生对${subjectLabel}学习内容的理解与应用能力。`,
+    `3. 在课堂中渗透核心素养要求，培养学生的表达、合作、思维或实践能力。`,
+  ].join('\n');
+}
+
+export function buildFallbackStandards(input: LessonInput): string {
+  const subjectLabel = getSubjectLabel(input.subject);
+  return `对齐${subjectLabel}学科核心素养，突出任务驱动、分层练习和课堂反馈，避免过度追问学生填写长篇教学目标。`;
+}
+
 // ==================== 教案生成 Prompt ====================
 
 /**
  * 教案生成 Prompt 模板
  */
 export function generateLessonPrompt(input: LessonInput): string {
-  // 年级映射
-  const gradeMap: Record<string, string> = {
-    'primary-1': '小学一年级',
-    'primary-2': '小学二年级',
-    'primary-3': '小学三年级',
-    'primary-4': '小学四年级',
-    'primary-5': '小学五年级',
-    'primary-6': '小学六年级',
-    'junior-1': '初中一年级',
-    'junior-2': '初中二年级',
-    'junior-3': '初中三年级',
-    'senior-1': '高中一年级',
-    'senior-2': '高中二年级',
-    'senior-3': '高中三年级',
-  };
-
-  // 学科映射
-  const subjectMap: Record<string, string> = {
-    'chinese': '语文',
-    'math': '数学',
-    'english': '英语',
-    'physics': '物理',
-    'chemistry': '化学',
-    'biology': '生物',
-    'history': '历史',
-    'geography': '地理',
-    'morality': '道德与法治',
-  };
-
-  const gradeLabel = gradeMap[input.grade] || input.grade;
-  const subjectLabel = subjectMap[input.subject] || input.subject;
+  const gradeLabel = getGradeLabel(input.grade);
+  const subjectLabel = getSubjectLabel(input.subject);
+  const objectives = input.objectives?.trim() || buildFallbackObjectives(input);
+  const standards = input.standards?.trim() || buildFallbackStandards(input);
 
   return `你是一位经验丰富的${subjectLabel}教师，擅长教学设计和课堂实践。
 
@@ -49,9 +73,14 @@ export function generateLessonPrompt(input: LessonInput): string {
 
 **课题**: ${input.topic}
 ${input.textbook ? `**教材版本**: ${input.textbook}` : ''}
-**教学目标**: ${input.objectives}
+**教学目标**: ${objectives}
 **课时长度**: ${input.duration}分钟
-${input.standards ? `**课程标准要求**: ${input.standards}` : ''}
+**课程标准要求**: ${standards}
+
+**重要约束**:
+1. 必须围绕“${input.topic}”本身展开，不得替换成其他课文、其他篇目或常见示例。
+2. 如果课题是具体文本、实验、公式或知识点，请严格使用该课题，不要擅自改写成《少年中国说》这类无关内容。
+3. 输出内容要与用户输入的年级、学科和教材版本一致。
 
 请严格按照以下 JSON 格式输出教案内容：
 
@@ -104,6 +133,7 @@ ${input.standards ? `**课程标准要求**: ${input.standards}` : ''}
 4. 教学活动要具体，避免空泛描述
 5. 板书设计要简洁明了，突出重点
 6. 作业布置要有层次性，适合不同水平学生
+7. 不要复用示例课文或无关经典文本来替代用户输入的课题
 
 **重要**: 只输出 JSON 格式的内容，不要有任何其他文字说明。`;
 }

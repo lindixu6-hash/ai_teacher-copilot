@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DURATION_OPTIONS, GRADE_OPTIONS, SUBJECT_OPTIONS, type CurrentUserResponse, type LessonInput } from '@/types';
 import { withBasePath } from '@/lib/path';
+import { buildFallbackObjectives, buildFallbackStandards } from '@/lib/prompts';
 
 const TEXTBOOK_OPTIONS = [
   { value: 'tongbian', label: '统编版/部编版' },
@@ -20,11 +21,11 @@ const SAMPLE_INPUT: FormState = {
   grade: 'primary-5',
   subject: 'chinese',
   textbook: 'tongbian',
-  topic: '《少年中国说（节选）》',
+  topic: '《草船借箭》',
   duration: 40,
   objectives:
-    '1. 正确、流利、有感情地朗读课文，背诵课文。\n2. 理解课文内容，体会作者强烈的爱国主义情感。\n3. 结合历史与现实，理解“少年强则国强”的深刻内涵。',
-  standards: '对齐学段核心素养，突出情感态度与价值观的培养。',
+    '1. 理解故事情节与人物形象。\n2. 体会人物的智慧与团队协作。\n3. 能结合文本信息进行简单分析与表达。',
+  standards: '对齐学段核心素养，突出阅读理解与表达能力。',
 };
 
 const SUGGESTED_TOPICS = [
@@ -122,9 +123,29 @@ export default function HomePage() {
       textbook: tag.textbook,
       topic: tag.label,
       duration: 40,
-      objectives:
-        '1. 掌握本节课相关核心基础知识。\n2. 深入理解课文/章节重点逻辑。\n3. 达成学科素养要求的实际应用能力。',
-      standards: '',
+      objectives: buildFallbackObjectives({
+        grade: tag.grade,
+        subject: tag.subject,
+        textbook: tag.textbook,
+        topic: tag.label,
+        duration: 40,
+      }),
+      standards: buildFallbackStandards({
+        grade: tag.grade,
+        subject: tag.subject,
+        textbook: tag.textbook,
+        topic: tag.label,
+        duration: 40,
+      }),
+    });
+    setErrors({});
+  };
+
+  const fillSmartDraft = () => {
+    setFormData({
+      ...formData,
+      objectives: buildFallbackObjectives(formData),
+      standards: buildFallbackStandards(formData),
     });
     setErrors({});
   };
@@ -141,7 +162,6 @@ export default function HomePage() {
     if (!formData.subject) nextErrors.subject = '请选择学科';
     if (!formData.textbook) nextErrors.textbook = '请选择教材版本';
     if (!formData.topic.trim()) nextErrors.topic = '请输入课题';
-    if (!formData.objectives.trim()) nextErrors.objectives = '请输入教学目标';
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -350,13 +370,18 @@ export default function HomePage() {
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-semibold tracking-wider text-[#6f685f]">教学目标与核心素养要求</label>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <label className="block text-xs font-semibold tracking-wider text-[#6f685f]">教学目标与核心素养要求（可选）</label>
+                <button type="button" onClick={fillSmartDraft} className="rounded-full border border-[#6f8077]/30 bg-white/60 px-3 py-1 text-[11px] text-[#6f8077]">
+                  一键补全
+                </button>
+              </div>
           <div className={`input-shell rounded-xl border bg-white/60 p-3 ${errors.objectives ? 'border-red-400' : 'border-black/5'}`}>
             <textarea
               rows={5}
               value={formData.objectives}
               onChange={(event) => setFormData({ ...formData, objectives: event.target.value })}
-              placeholder="请输入核心教学意图及目标要求..."
+              placeholder="可直接留空，系统会根据课题自动生成。"
               className="w-full resize-none bg-transparent text-sm leading-relaxed text-[#2d2a27] outline-none"
             />
           </div>
@@ -369,7 +394,7 @@ export default function HomePage() {
               rows={3}
               value={formData.standards || ''}
               onChange={(event) => setFormData({ ...formData, standards: event.target.value })}
-              placeholder="例如：突出任务驱动、小组互动、分层目标等"
+              placeholder="可留空，系统会自动补齐。"
               className="w-full resize-none bg-transparent text-sm leading-relaxed text-[#2d2a27] outline-none"
             />
           </div>

@@ -71,7 +71,7 @@ export interface LessonInput {
   /** 课题 */
   topic: string;
   /** 教学目标 */
-  objectives: string;
+  objectives?: string;
   /** 课时长度(分钟) */
   duration: number;
   /** 课程标准(可选) */
