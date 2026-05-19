@@ -93,6 +93,8 @@ npm start
 
 然后由 Nginx / 阿里云反向代理挂载到 `/teacher-copilot-app/`。
 
+部署清单见：[DEPLOY_REDEPLOY.md](./DEPLOY_REDEPLOY.md)
+
 ## 演示账号
 
 - Free：`free@teachercopilot.local` / `Free123!`
