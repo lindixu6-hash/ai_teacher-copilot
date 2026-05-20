@@ -3,150 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Teacher Copilot | 教师端 AI 备课与出题助手</title>
+  <title>AI Teacher Copilot</title>
   <style>
-    :root{
-      --bg:#f6f1e8;
-      --card:rgba(255,255,255,.72);
-      --text:#2d2a27;
-      --muted:#6f685f;
-      --brand:#6f8077;
-      --line:rgba(45,42,39,.08);
-    }
-    *{box-sizing:border-box}
     body{
       margin:0;
       min-height:100vh;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(circle at top right, rgba(111,128,119,.14), transparent 28%),
-        radial-gradient(circle at left bottom, rgba(180,143,99,.12), transparent 24%),
-        linear-gradient(180deg,#fbf8f2 0%, var(--bg) 100%);
+      background:#f6f1e8;
+      color:#2d2a27;
+      display:grid;
+      place-items:center;
+      padding:24px;
     }
-    .wrap{max-width:1160px;margin:0 auto;padding:32px 20px 56px}
-    .hero,.panel{
-      background:var(--card);
-      border:1px solid var(--line);
-      backdrop-filter:blur(14px);
+    .card{
+      max-width:760px;
+      width:100%;
+      padding:28px;
       border-radius:28px;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(45,42,39,.08);
       box-shadow:0 18px 60px rgba(45,42,39,.08);
     }
-    .hero{padding:32px}
-    .eyebrow{
-      display:inline-block;
-      font-size:12px;
-      letter-spacing:.22em;
-      text-transform:uppercase;
-      color:var(--brand);
-      margin-bottom:12px;
-    }
-    h1{margin:0;font-size:clamp(34px,5vw,62px);line-height:1.02}
-    .sub{max-width:720px;margin:14px 0 0;color:var(--muted);font-size:16px;line-height:1.7}
-    .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
-    .btn{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:12px 18px;border-radius:999px;text-decoration:none;
-      font-size:14px;font-weight:600;border:1px solid transparent
-    }
-    .btn.primary{background:var(--brand);color:#fff}
-    .btn.ghost{background:rgba(255,255,255,.62);color:var(--text);border-color:var(--line)}
-    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:16px}
-    .card{padding:20px;border-radius:22px;background:rgba(255,255,255,.68);border:1px solid var(--line)}
-    .span-4{grid-column:span 4}
-    .span-6{grid-column:span 6}
-    .span-12{grid-column:span 12}
-    .kpi{font-size:28px;font-weight:700;margin:4px 0 0}
-    .label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--brand)}
-    .title{font-size:16px;font-weight:700;margin:0 0 8px}
-    .text{margin:0;color:var(--muted);font-size:14px;line-height:1.7}
-    .list{margin:0;padding-left:18px;color:var(--muted);line-height:1.8;font-size:14px}
-    .section{margin-top:18px}
-    .section h2{margin:0 0 12px;font-size:22px}
-    .chips{display:flex;gap:10px;flex-wrap:wrap}
-    .chip{padding:8px 12px;border-radius:999px;background:rgba(111,128,119,.1);color:var(--brand);font-size:12px;font-weight:600}
-    .note{margin-top:16px;font-size:13px;color:var(--muted)}
-    .footer{margin-top:20px;color:var(--muted);font-size:13px}
-    @media (max-width: 860px){
-      .span-4,.span-6,.span-12{grid-column:span 12}
-      .hero{padding:24px}
+    .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#6f8077}
+    h1{margin:10px 0 8px;font-size:clamp(30px,4vw,48px)}
+    p{margin:0 0 18px;color:#6f685f;line-height:1.7}
+    a{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px 18px;
+      border-radius:999px;
+      background:#6f8077;
+      color:#fff;
+      text-decoration:none;
+      font-weight:600;
     }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <section class="hero">
-      <div class="eyebrow">AI PM Portfolio</div>
-      <h1>AI Teacher Copilot</h1>
-      <p class="sub">
-        面向中小学教师的 AI 备课与出题助手。它不是一个聊天框，而是一套可演示、可解释、可收费的产品闭环：
-        登录、套餐、用量限制、管理后台、教案生成、题目生成、质量检查、历史记录与导出。
-      </p>
-      <div class="cta">
-        <a class="btn primary" href="/teacher-copilot/">进入产品</a>
-        <a class="btn ghost" href="https://github.com/lindixu6-hash/ai_teacher-copilot" target="_blank" rel="noreferrer">查看 GitHub</a>
-      </div>
-
-      <div class="grid section">
-        <div class="card span-4">
-          <div class="label">产品价值</div>
-          <div class="kpi">30 分钟 → 5 分钟</div>
-          <p class="text">把教师备课从“拼凑工具”变成“结构化工作流”。</p>
-        </div>
-        <div class="card span-4">
-          <div class="label">商业化能力</div>
-          <div class="kpi">登录 / 套餐 / 限额</div>
-          <p class="text">让产品能被管理、能控成本、能讲清楚收费逻辑。</p>
-        </div>
-        <div class="card span-4">
-          <div class="label">产品闭环</div>
-          <div class="kpi">生成 / 质检 / 导出</div>
-          <p class="text">从输入到产出，再到复盘和沉淀，路径完整。</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="grid section">
-      <div class="card span-6">
-        <h2>我做了什么</h2>
-        <ul class="list">
-          <li>教案生成：按年级、学科、教材、课题、教学目标生成结构化教案。</li>
-          <li>题目生成：支持选择题、填空题、简答题，并按难度分层。</li>
-          <li>质量检查：检查目标覆盖、题型分布、难度分布与表述清晰度。</li>
-          <li>管理后台：查看用户、套餐和用量概览。</li>
-        </ul>
-      </div>
-      <div class="card span-6">
-        <h2>AI PM 思路</h2>
-        <ul class="list">
-          <li>先定义真实场景，而不是先堆模型能力。</li>
-          <li>把“生成内容”拆成工作流，再加入商业层能力。</li>
-          <li>用用量限制控制成本，用后台保证可运营性。</li>
-          <li>让每个页面都能讲清楚为什么存在。</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="grid section">
-      <div class="card span-12">
-        <h2>核心标签</h2>
-        <div class="chips">
-          <span class="chip">教师备课</span>
-          <span class="chip">AI 工作流</span>
-          <span class="chip">结构化输出</span>
-          <span class="chip">商业化设计</span>
-          <span class="chip">登录与套餐</span>
-          <span class="chip">用量限制</span>
-          <span class="chip">管理后台</span>
-          <span class="chip">可演示 MVP</span>
-        </div>
-        <div class="note">
-          线上入口：<strong>http://47.86.191.93/teacher-copilot/</strong>
-        </div>
-      </div>
-    </section>
-
-    <p class="footer">AI Teacher Copilot | 独立开发者作品集</p>
+  <main class="card">
+    <div class="eyebrow">AI Teacher Copilot</div>
+    <h1>教师端 AI 备课与出题助手</h1>
+    <p>这是产品入口壳，真正的产品页在 `/teacher-copilot-app/`。</p>
+    <a href="/teacher-copilot-app/">进入产品页</a>
   </main>
 </body>
 </html>
